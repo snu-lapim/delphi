@@ -2,7 +2,7 @@ import asyncio
 import os
 from functools import partial
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
 
 import orjson
 import torch
@@ -36,18 +36,78 @@ def load_artifacts(run_cfg: RunConfig):
         dtype = torch.bfloat16
     else:
         dtype = "auto"
+    # LLaMA 계열 모델 감지
+    model_name_lower = run_cfg.model.lower()
+    is_llama_model = any(name in model_name_lower for name in ["llama", "mistral", "vicuna"])
 
-    model = AutoModel.from_pretrained(
-        run_cfg.model,
-        device_map={"": "cuda"},
-        quantization_config=(
-            BitsAndBytesConfig(load_in_8bit=run_cfg.load_in_8bit)
-            if run_cfg.load_in_8bit
-            else None
-        ),
-        torch_dtype=dtype,
-        token=run_cfg.hf_token,
-    )
+    try:
+        if is_llama_model:
+            # lxt 모듈의 특수 LlamaModel 시도
+            try:
+                
+                from transformers.models.llama import modeling_llama
+                if run_cfg.apply_attnlrp:
+                    from lxt.efficient import monkey_patch
+                    monkey_patch(modeling_llama,verbose=True)
+                # from .lxt.explicit.models.llama import LlamaModel #sangyu:debug
+                print(f"모델 '{run_cfg.model}'을(를) lxt.explicit.models.llama.LlamaModel로 로드합니다")
+                
+                model = modeling_llama.LlamaModel.from_pretrained(
+                    run_cfg.model,
+                    device_map={"": "cuda"},
+                    quantization_config=(
+                        BitsAndBytesConfig(load_in_8bit=run_cfg.load_in_8bit)
+                        if run_cfg.load_in_8bit
+                        else None
+                    ),
+                    torch_dtype=dtype,
+                    token=run_cfg.hf_token,
+                )
+                
+            except (ImportError, ModuleNotFoundError) as e:
+                # lxt 모듈 로드 실패 시 AutoModel 사용
+                print(f"lxt 모듈을 불러올 수 없습니다: {e}")
+                print(f"AutoModel을 사용하여 LLaMA 모델을 로드합니다.")
+                
+                model = AutoModel.from_pretrained(
+                    run_cfg.model,
+                    device_map={"": "cuda"},
+                    quantization_config=(
+                        BitsAndBytesConfig(load_in_8bit=run_cfg.load_in_8bit)
+                        if run_cfg.load_in_8bit
+                        else None
+                    ),
+                    torch_dtype=dtype,
+                    token=run_cfg.hf_token,
+                )
+        else:
+            # 비-LLaMA 모델
+            model = AutoModel.from_pretrained(
+                run_cfg.model,
+                device_map={"": "cuda"},
+                quantization_config=(
+                    BitsAndBytesConfig(load_in_8bit=run_cfg.load_in_8bit)
+                    if run_cfg.load_in_8bit
+                    else None
+                ),
+                torch_dtype=dtype,
+                token=run_cfg.hf_token,
+            )
+    except Exception as e:
+        print(f"모델 로딩 중 오류 발생: {e}")
+        print("표준 AutoModel을 사용하여 로드합니다")
+        
+        model = AutoModel.from_pretrained(
+            run_cfg.model,
+            device_map={"": "cuda"},
+            quantization_config=(
+                BitsAndBytesConfig(load_in_8bit=run_cfg.load_in_8bit)
+                if run_cfg.load_in_8bit
+                else None
+            ),
+            torch_dtype=dtype,
+            token=run_cfg.hf_token,
+        )
 
     hookpoint_to_sparse_encode, transcode = load_hooks_sparse_coders(
         model,
@@ -115,6 +175,8 @@ async def process_cache(
     hookpoints: list[str],
     tokenizer: PreTrainedTokenizer | PreTrainedTokenizerFast,
     latent_range: Tensor | None,
+    model: Optional[PreTrainedModel] = None,
+    hookpoint_to_sparse_encode: Optional[dict[str, Callable]] = None,
 ):
     """
     Converts SAE latent activations in on-disk cache in the `latents_path` directory
@@ -190,6 +252,9 @@ async def process_cache(
             client,
             threshold=0.3,
             verbose=run_cfg.verbose,
+            model=model,
+            hookpoint_to_sparse_encode=hookpoint_to_sparse_encode,
+            apply_attnlrp=run_cfg.apply_attnlrp, # sangyu: attnlrp 적용 여부
         )
 
     explainer_pipe = Pipe(process_wrapper(explainer, postprocess=explainer_postprocess))
@@ -379,7 +444,7 @@ async def run(
             transcode,
         )
 
-    del model, hookpoint_to_sparse_encode
+    # del model, hookpoint_to_sparse_encode
     if run_cfg.constructor_cfg.non_activating_source == "neighbours":
         nrh = assert_type(
             list,
@@ -403,6 +468,10 @@ async def run(
             hookpoints, scores_path, "scores" in run_cfg.overwrite
         ),
     )
+    model = model.to('cpu')
+    # hookpoint_to_sparse_encode = {
+    #     k: v.to("cpu") for k, v in hookpoint_to_sparse_encode.items()
+    # }
     if nrh:
         await process_cache(
             run_cfg,
@@ -412,7 +481,12 @@ async def run(
             nrh,
             tokenizer,
             latent_range,
+            model,  # model 전달
+            hookpoint_to_sparse_encode,  # hookpoint_to_sparse_encode 전달
         )
+
+    # process_cache 호출 후 모델과 hookpoint_to_sparse_encode 삭제
+    del model, hookpoint_to_sparse_encode
 
     if run_cfg.verbose:
         log_results(scores_path, visualize_path, run_cfg.hookpoints)
