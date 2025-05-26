@@ -53,7 +53,7 @@ def _to_heat(relevance: torch.Tensor, heat_method: str = 'sum', normalize_method
     if normalize_method == 'minmax':
         h = (h - h.min()) / (h.max() - h.min() + 1e-8)
     elif normalize_method == 'abs_max':
-        h = h / (h.abs().max() + 1e-8) # default in attnlrp
+        h = h / (h.abs().max() + 1e-16) # default in attnlrp
     else:
         raise ValueError(f"Unknown normalization method: {normalize_method}")
     return h
@@ -178,7 +178,8 @@ class Explainer(ABC):
 
             # 3-b) relevance → -10~10 ints
             norm_int = torch.clamp((rel * 10.0).round(), -10, 10).to(torch.int)
-
+            #Sangyu:monkey patch to salience first token #TODO: remove this
+            norm_int[0] = 0
             # 직접 원본 객체의 필드 수정
             act_examples[i].activations = top1
             act_examples[i].normalized_activations = norm_int
