@@ -6,6 +6,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import NamedTuple, List
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import aiofiles
 import captum.attr as C
 from ..clients.client import Client, Response
@@ -76,11 +78,11 @@ class Explainer(ABC):
     """Optional model to use for explanation."""
     hookpoint_to_sparse_encode: Optional[dict[str, Callable]] = None
     """Optional sparse encoders to use for explanation."""
-    apply_attenlrp: bool = True
+    apply_attnlrp: bool = True
     """Whether to apply the AttnLRP patch to the model."""
 
     async def __call__(self, record: LatentRecord) -> ExplainerResult:
-        if self.apply_attenlrp:
+        if self.apply_attnlrp:
             self.update_examples_with_relevance(record)
         
         
@@ -166,10 +168,10 @@ class Explainer(ABC):
         # ------------------------------------------------------------------
         # (3)  build NEW ActivatingExample list
         # ------------------------------------------------------------------
-        new_examples: List[ActivatingExample] = []
-        for ex, orig_act, rel in zip(act_examples, acts, relevance):
+        
+        for i, (ex, orig_act, rel) in enumerate(zip(act_examples, acts, relevance)):
             # 3-a) top-1 activation tensor
-            top1  = orig_act.clone()
+            top1 = orig_act.clone()
             top1.zero_()
             max_i = torch.argmax(orig_act)
             top1[max_i] = orig_act[max_i]
@@ -177,16 +179,12 @@ class Explainer(ABC):
             # 3-b) relevance → -10~10 ints
             norm_int = torch.clamp((rel * 10.0).round(), -10, 10).to(torch.int)
 
-            # 3-c) new ActivatingExample (same class, fresh values)
-            new_examples.append(
-                ActivatingExample(
-                    tokens=ex.tokens,
-                    activations=top1,
-                    normalized_activations=norm_int,
-                )
-            )
+            # 직접 원본 객체의 필드 수정
+            act_examples[i].activations = top1
+            act_examples[i].normalized_activations = norm_int
 
-        return new_examples
+        # 수정된 원본 리스트 반환
+        return act_examples
 
 # ────────────────────────────────────────────────────────────────────────────
 # 4)  relevance 계산 함수 (기존 relevance_fn 을 메서드로 뺌)
