@@ -153,7 +153,8 @@ class RunConfig(Serializable):
 
     load_in_8bit: bool = False
     """Load the model in 8-bit mode."""
-
+    apply_attnlrp: bool = True
+    """Whether to apply the AttnLRP patch to the model."""
     # Use a dummy encoding function to prevent the token from being saved
     # to disk in plain text
     hf_token: str | None = field(default=None, encoding_fn=lambda _: None)

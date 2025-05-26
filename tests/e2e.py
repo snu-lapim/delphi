@@ -28,7 +28,7 @@ async def test():
     )
     constructor_cfg = ConstructorConfig(
         min_examples=90,
-        example_ctx_len=32,
+        example_ctx_len=256,
         n_non_activating=50,
         non_activating_source="random",
         faiss_embedding_cache_enabled=True,
@@ -37,11 +37,12 @@ async def test():
     run_cfg = RunConfig(
         name="test",
         overwrite=["cache", "scores"],
-        model="EleutherAI/pythia-160m",
-        sparse_model="EleutherAI/sae-pythia-160m-32k",
-        hookpoints=["layers.3.mlp"],
-        explainer_model="hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4",
-        explainer_model_max_len=4208,
+        model="meta-llama/Llama-3.2-1B",
+        sparse_model="EleutherAI/sae-Llama-3.2-1B-131k",
+        hookpoints=["layers.14.mlp"],
+        explainer_model="deepseek/deepseek-r1:free",
+        explainer_provider="openrouter",
+        explainer_model_max_len=4096,
         max_latents=100,
         seed=22,
         num_gpus=torch.cuda.device_count(),
@@ -50,6 +51,7 @@ async def test():
         sampler_cfg=sampler_cfg,
         constructor_cfg=constructor_cfg,
         cache_cfg=cache_cfg,
+        apply_attnlrp=True
     )
 
     start_time = time.time()
