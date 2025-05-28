@@ -28,6 +28,10 @@ dependencies = [
     "anyio>=4.8.0",
     "faiss-cpu",
     "asyncer>=0.0.8",
+    "captum",
+    "lxt",
+    "plotly",
+    "beartype",
 ]
 
 [project.optional-dependencies]

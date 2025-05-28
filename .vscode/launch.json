@@ -10,7 +10,10 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "justMyCode": false
+            "justMyCode": false,
+            "env": {
+                "OPENROUTER_API_KEY": "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"
+            },            
         }
     ]
 }

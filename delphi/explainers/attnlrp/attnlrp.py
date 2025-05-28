@@ -82,7 +82,8 @@ class AttnLRPExplainer(Explainer):
         for i, example in enumerate(examples):
             str_toks = example.str_tokens
             activations = example.activations.tolist()
-            highlighted_examples.append(self._highlight(str_toks, activations))
+            normalized_activations = example.normalized_activations.tolist()
+            highlighted_examples.append(self._highlight(str_toks, activations, normalized_activations))
 
             if self.activations:
                 assert (
@@ -102,6 +103,65 @@ class AttnLRPExplainer(Explainer):
             activations=self.activations,
             cot=self.cot,
         )
+
+    def _highlight(self, str_toks: list[str], activations: list[float], normalized_activations: list[int]) -> str:
+        result = ""
+        # threshold = max(activations) * self.threshold
+        threshold = 0.1  # Sangyu:monkey patch to use fixed threshold for now
+
+        def check(i):
+            return normalized_activations[i] > threshold
+        def act_check(i):
+            return activations[i] > threshold
+        i = 0
+        while i < len(str_toks):
+            
+            if check(i):
+                result += "<<"
+
+                while i < len(str_toks) and check(i):
+                    if act_check(i):
+                        result += "{{"
+                    result += str_toks[i]
+                    i += 1
+                if act_check(i-1):
+                    result += "}}"
+                result += ">>"
+            else:
+                result += str_toks[i]
+                i += 1
+        ### Sangyu:actviated focused token : *word*
+
+        return "".join(result)
+
+    def _join_activations(
+        self,
+        str_toks: list[str],
+        token_activations: list[float],
+        normalized_activations: list[float],
+    ) -> str:
+        acts = ""
+        activation_count = 0
+        
+        for str_tok, token_activation, normalized_activation in zip(
+            str_toks, token_activations, normalized_activations
+        ):  
+            if token_activation > 0.1: # only one activated token
+                acts += f'("Contribution to token {{{{{str_tok}}}}} whose feature activation is {token_activation} : '
+        
+        acts += '['
+        for str_tok, token_activation, normalized_activation in zip(
+            str_toks, token_activations, normalized_activations
+        ):
+            if normalized_activation > 0.1:
+                # TODO: for each example, we only show the first 10 activations
+                # decide on the best way to do this
+                if activation_count > 100:
+                    break
+                acts += f'("{str_tok}" : {int(normalized_activation)}),'
+                activation_count += 1
+        acts = acts[:-1] + ']'  # remove last comma and close the list
+        return "Activations: " + acts
         
     #######################################################################
 # attnlrp saliency for one SAE latent:sangyu
