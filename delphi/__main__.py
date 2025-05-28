@@ -19,7 +19,7 @@ from transformers import (
 
 from delphi.clients import Offline, OpenRouter
 from delphi.config import RunConfig
-from delphi.explainers import ContrastiveExplainer, DefaultExplainer
+from delphi.explainers import ContrastiveExplainer, DefaultExplainer, AttnLRPExplainer
 from delphi.latents import LatentCache, LatentDataset
 from delphi.latents.neighbours import NeighbourCalculator
 from delphi.log.result_analysis import log_results
@@ -247,7 +247,16 @@ async def process_cache(
             threshold=0.3,
             verbose=run_cfg.verbose,
         )
+    elif run_cfg.apply_attnlrp:
+        explainer = AttnLRPExplainer(
+            client,
+            threshold=0.3,
+            verbose=run_cfg.verbose,
+            model=model,  # sangyu: 모델 전달
+            hookpoint_to_sparse_encode=hookpoint_to_sparse_encode,  # sangyu: hookpoint_to_sparse_encode 전달
+        )
     else:
+        
         explainer = DefaultExplainer(
             client,
             threshold=0.3,

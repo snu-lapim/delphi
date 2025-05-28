@@ -1,5 +1,6 @@
 from .contrastive_explainer import ContrastiveExplainer
 from .default.default import DefaultExplainer
+from .attnlrp.attnlrp import AttnLRPExplainer 
 from .explainer import Explainer, explanation_loader, random_explanation_loader
 from .single_token_explainer import SingleTokenExplainer
 
@@ -10,4 +11,5 @@ __all__ = [
     "explanation_loader",
     "random_explanation_loader",
     "ContrastiveExplainer",
+    "AttnLRPExplainer",
 ]
