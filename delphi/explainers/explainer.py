@@ -41,22 +41,7 @@ def show_activation_for_debug(
         print(f"Feature {latentnumber} - Max Activation: {max_act}")
     
 
-def _to_heat(relevance: torch.Tensor, heat_method: str = 'sum', normalize_method: str = 'abs_max') -> torch.Tensor:
 
-    if heat_method == 'sum':
-        relevance = relevance.float().sum(-1).detach().cpu().squeeze()
-    elif heat_method == 'l2':
-        relevance = relevance.float().pow(2).sum(-1).sqrt().detach().cpu().squeeze()
-    else:
-        raise ValueError(f"Unknown heat method: {heat_method}")
-    h = relevance
-    if normalize_method == 'minmax':
-        h = (h - h.min()) / (h.max() - h.min() + 1e-8)
-    elif normalize_method == 'abs_max':
-        h = h / (h.abs().max() + 1e-16) # default in attnlrp
-    else:
-        raise ValueError(f"Unknown normalization method: {normalize_method}")
-    return h
 
 @dataclass
 class Explainer(ABC):
@@ -78,12 +63,12 @@ class Explainer(ABC):
     """Optional model to use for explanation."""
     hookpoint_to_sparse_encode: Optional[dict[str, Callable]] = None
     """Optional sparse encoders to use for explanation."""
-    apply_attnlrp: bool = True
-    """Whether to apply the AttnLRP patch to the model."""
+    # apply_attnlrp: bool = True
+    # """Whether to apply the AttnLRP patch to the model."""
 
     async def __call__(self, record: LatentRecord) -> ExplainerResult:
-        if self.apply_attnlrp:
-            self.update_examples_with_relevance(record)
+        # if self.apply_attnlrp:
+        #     self.update_examples_with_relevance(record)
         
         
         messages = self._build_prompt(record.train)
@@ -106,143 +91,7 @@ class Explainer(ABC):
             return ExplainerResult(
                 record=record, explanation="Explanation could not be parsed."
             )
-#######################################################################
-# attnlrp saliency for one SAE latent:sangyu
-#######################################################################
 
-    def update_examples_with_relevance(self, record: LatentRecord) -> None:
-        """
-        For every split in `record`, replace
-          • .activations  → top-1-only tensor
-          • .normalized_activations → relevance-based ints in [-10, 10]
-        """
-        hp   = record.latent.module_name
-        idx  = record.latent.latent_index
-        
-        record.train      = self._apply_relevance(record.train,      hp, idx)
-        # if self.verbose:
-        #     show_activation_for_debug(record.train, idx) # 이 코드 사용하면 heatmap/ 폴더에 activation pdf 저장됨
-        record.examples   = self._apply_relevance(record.examples,   hp, idx)
-        record.test       = self._apply_relevance(record.test,       hp, idx)
-        record.neighbours = self._apply_relevance(record.neighbours, hp, idx)
-
-# ────────────────────────────────────────────────────────────────────────────
-# 3)  내부 helper : 실제로 relevance 계산하고 예시 수정
-# ────────────────────────────────────────────────────────────────────────────
-    def _apply_relevance(
-        self,
-        act_examples : List[ActivatingExample],
-        hookpoint    : str,
-        latentnumber : int,
-    ) -> List[ActivatingExample]:
-        """
-        Return a *new* list of ActivatingExample with:
-          • activations           –> top-1 only
-          • normalized_activations –> int relevance in [-10, 10]
-        """
-        if not act_examples:
-            return act_examples
-
-        # ------------------------------------------------------------------
-        # (1)  prepare batch tensors
-        # ------------------------------------------------------------------
-        toks, acts, _ = zip(*[(ex.tokens,
-                               ex.activations,
-                               ex.normalized_activations)
-                              for ex in act_examples])
-
-        batch_ids  = torch.stack(toks).to("cuda")           # (B,S)
-        batch_acts = torch.stack(acts).to("cuda")           # (B,S)
-
-        model = self.model.to("cuda").eval()
-        sae   = self.hookpoint_to_sparse_encode[hookpoint].keywords["sae"]
-
-        # ------------------------------------------------------------------
-        # (2)  relevance (Grad × Input)  — micro-batched
-        # ------------------------------------------------------------------
-        relevance = self._compute_relevance(                 # (B,S)  in [-1,1]
-            batch_ids, batch_acts, model,
-            hookpoint, latentnumber, sae, micro_bs=4
-        ).cpu()
-
-        # ------------------------------------------------------------------
-        # (3)  build NEW ActivatingExample list
-        # ------------------------------------------------------------------
-        
-        for i, (ex, orig_act, rel) in enumerate(zip(act_examples, acts, relevance)):
-            # 3-a) top-1 activation tensor
-            top1 = orig_act.clone()
-            top1.zero_()
-            max_i = torch.argmax(orig_act)
-            top1[max_i] = orig_act[max_i]
-
-            # 3-b) relevance → -10~10 ints
-            norm_int = torch.clamp((rel * 10.0).round(), -10, 10).to(torch.int)
-            #Sangyu:monkey patch to salience first token #TODO: remove this
-            norm_int[0] = 0
-            # 직접 원본 객체의 필드 수정
-            act_examples[i].activations = top1
-            act_examples[i].normalized_activations = norm_int
-
-        # 수정된 원본 리스트 반환
-        return act_examples
-
-# ────────────────────────────────────────────────────────────────────────────
-# 4)  relevance 계산 함수 (기존 relevance_fn 을 메서드로 뺌)
-#     — 내용은 이전과 동일, 이름만 바꿈
-# ────────────────────────────────────────────────────────────────────────────
-    def _compute_relevance(
-        self,
-        batch_ids    : torch.Tensor,
-        batch_acts   : torch.Tensor,
-        model        : nn.Module,
-        layername    : str,
-        latent_idx   : int,
-        sae,
-        micro_bs     : int = 4,
-    ) -> torch.Tensor:                       # → (B,S) relevance in [-1,1]
-        device        = batch_ids.device
-        embed_layer   = model.get_input_embeddings()
-        relevance_all = []
-
-        b_dec = sae.b_dec.to(model.dtype)
-        W_enc = sae.encoder.weight[latent_idx].to(model.dtype)
-        b_enc = sae.encoder.bias[latent_idx].to(model.dtype)
-
-        for s in range(0, batch_ids.size(0), micro_bs):
-            e      = s + micro_bs
-            ids_mb = batch_ids[s:e]
-            act_mb = batch_acts[s:e]
-
-            model.zero_grad(set_to_none=True)
-            embeds = embed_layer(ids_mb).detach().clone().requires_grad_(True)
-
-            captured = {}
-            def _hook(_, __, out):
-                captured["out"] = out[0] if isinstance(out, tuple) else out
-            handle = model.get_submodule(layername).register_forward_hook(_hook)
-
-            attn_mask = ids_mb.ne(tokenizer.pad_token_id).long() \
-                        if tokenizer.pad_token_id is not None else None
-            _ = model(inputs_embeds=embeds, attention_mask=attn_mask)
-            handle.remove()
-
-            outs = captured["out"]                         # (mb,S,H)
-            tok_idx = act_mb.argmax(dim=1)                 # (mb,)
-            vecs    = outs[torch.arange(outs.size(0), device=device),
-                           tok_idx, :]
-
-            score = F.linear(vecs - b_dec, W_enc.unsqueeze(0), b_enc).sum()
-            score.backward()
-
-            # Grad × Input → relevance
-            rel_mb = embeds.grad * embeds                  # (mb,S,H)
-            relevance_all.append(_to_heat(rel_mb))        # (mb,S)
-
-            del embeds, outs, captured
-            torch.cuda.empty_cache()
-
-        return torch.cat(relevance_all, dim=0)             # (B,S)
 
    
 
