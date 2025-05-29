@@ -40,7 +40,7 @@ async def test():
         model="meta-llama/Llama-3.2-1B",
         sparse_model="EleutherAI/sae-Llama-3.2-1B-131k",
         hookpoints=["layers.14.mlp"],
-        explainer_model="deepseek/deepseek-r1:free",
+        explainer_model="deepseek/deepseek-r1-0528:free",
         explainer_provider="openrouter",
         explainer_model_max_len=4096,
         max_latents=100,
