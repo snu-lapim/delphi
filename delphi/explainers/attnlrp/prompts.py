@@ -21,8 +21,8 @@ Your task:
 """
 
 SYSTEM = """You are a meticulous AI researcher investigating language features.
-Each example contains **one** focal token marked with << >> and a line:
-   Contribution to <<token>> : ("word",weight), ...
+Each example contains **one** focal token marked with {{ }} and contributing tokens marked with << >>.:
+   Contribution to {{token}}, whose feature activation is *float* : [("word",weight), ... ]
 Summarize the common latent property causing activation on the focal token,
 taking the contributing tokens into account.
 
@@ -65,22 +65,22 @@ To better find the explanation for the language patterns go through the followin
 # 1. 새 Example 1
 #####################################################################
 EXAMPLE_1 = """
-Example 1:  and he was over the <<moon>> to find
+Example 1:  and he was <<over the {{moon}}>> to find
 
-Example 2:  we’ll be laughing till the cows come <<home>>! Pro
+Example 2:  we’ll be laughing <<till>> the <<cows come {{home}}>>! Pro
 
-Example 3:  thought Scotland was boring, but really there’s more than meets the <<eye>>! I’d
+Example 3:  thought Scotland was boring, but really there’s more <<than meets the {{eye}}>>! I’d
 """
 
 EXAMPLE_1_ACTIVATIONS = """
-Example 1:  and he was over the <<moon>> to find
-Contribution to <<moon>> : ("over",4), ("the",2), ("moon",9)
+Example 1:  and he was <<over the {{moon}}>> to find
+Contribution to token {{moon}} whose feature activation is 2.1123 : [("over",4), ("the",2), ("moon",9)]
 
-Example 2:  we’ll be laughing till the cows come <<home>>! Pro
-Contribution to <<home>> : ("till",4), ("cows",4), ("come",3), ("home",9)
+Example 2:  we’ll be laughing <<till>> the <<cows come {{home}}>>! Pro
+Contribution to token {{home}} whose feature activation is 1.5623 : [("till",4), ("cows",4), ("come",3), ("home",9)]
 
-Example 3:  thought Scotland was boring, but really there’s more than meets the <<eye>>! I’d
-Contribution to <<eye>> : ("than",3), ("meets",5), ("the",2), ("eye",9)
+Example 3:  thought Scotland was boring, but really there’s more <<than meets the {{eye}}>>! I’d
+Contribution to token {{eye}} whose feature activation is 2.23 : [("than",3), ("meets",5), ("the",2), ("eye",9)]
 """
 
 EXAMPLE_1_COT_ACTIVATION_RESPONSE = """
@@ -105,27 +105,27 @@ EXAMPLE_1_EXPLANATION = """
 # 2. 새 Example 2
 #####################################################################
 EXAMPLE_2 = """
-Example 1:  a river is wide but the ocean is wid<<er>>.
+Example 1:  a river is wide but the ocean <<is wid{{er}}>>.
 
-Example 2:  every year you get tall<<er>>," she said
+Example 2:  every year you <<get tall{{er}}>>," she said
 
-Example 3:  the hole became small<<er>> than before
+Example 3:  the hole <<became small{{er}}>> than before
 
-Example 4:  this lake is deep<<er>> than the pond
+Example 4:  this lake <<is deep{{er}}>> than the pond
 """
 
 EXAMPLE_2_ACTIVATIONS = """
-Example 1:  a river is wide but the ocean is wid<<er>>.
-Contribution to <<er>> : ("is",1), ("wid",4), ("er",9)
+Example 1:  a river is wide but the ocean <<is wid{{er}}>>.
+Contribution to token {{er}} whose feature activation is 1.6144 : ("is",1), ("wid",4), ("er",9)
 
-Example 2:  every year you get tall<<er>>," she said
-Contribution to <<er>> : ("get",1), ("tall",4), ("er",8)
+Example 2:  every year you <<get tall{{er}}>>," she said
+Contribution to token {{er}} whose feature activation is 2.1121 : ("get",1), ("tall",4), ("er",8)
 
-Example 3:  the hole became small<<er>> than before
-Contribution to <<er>> : ("became",1), ("small",4), ("er",9)
+Example 3:  the hole <<became small{{er}}>> than before
+Contribution to token {{er}} whose feature activation is 1.7899 : ("became",1), ("small",4), ("er",9)
 
-Example 4:  this lake is deep<<er>> than the pond
-Contribution to <<er>> : ("is",1), ("deep",4), ("er",9)
+Example 4:  this lake <<is deep{{er}}>> than the pond
+Contribution to token {{er}} whose feature activation is 1.5627 : ("is",1), ("deep",4), ("er",9)
 """
 
 
@@ -150,27 +150,27 @@ EXAMPLE_2_EXPLANATION = """
 # 3. 새 Example 3
 #####################################################################
 EXAMPLE_3 = """
-Example 1:  something happening inside my <<house>>", he whispered
+Example 1:  something happening <<inside my {{house}}>>, he whispered
 
-Example 2:  it was always contained in a <<box>>", according to experts
+Example 2:  it was always contained <<in a {{box}}>>, according to experts
 
-Example 3:  people were coming into the smoking <<area>> reserved for staff
+Example 3:  people were coming <<into the smoking {{area}}>> reserved for staff
 
-Example 4:  Patrick: "why are you getting in the <<way>>?" Later,
+Example 4:  Patrick: "why are you getting <<in the {{way}}>>?" Later,
 """
 
 EXAMPLE_3_ACTIVATIONS = """
-Example 1:  something happening inside my <<house>>", he whispered
-Contribution to <<house>> : ("inside",3), ("my",1), ("house",9)
+Example 1:  something happening <<inside my {{house}}>>, he whispered
+Contribution to token {{house}} whose feature activation is 2.1123 : [("inside",3), ("my",1), ("house",9)]
 
-Example 2:  it was always contained in a <<box>>", according to experts
-Contribution to <<box>> : ("in",2), ("a",1), ("box",9)
+Example 2:  it was always contained <<in a {{box}}>>, according to experts
+Contribution to token {{box}} whose feature activation is 2.5234 : [("in",2), ("a",1), ("box",9)]
 
-Example 3:  people were coming into the smoking <<area>> reserved for staff
-Contribution to <<area>> : ("into",2), ("smoking",3), ("area",8)
+Example 3:  people were coming <<into the smoking {{area}}>> reserved for staff
+Contribution to token {{area}} whose feature activation is 2.1838 : [("into",2), ("smoking",3), ("area",8)]
 
-Example 4:  Patrick: "why are you getting in the <<way>>?" Later,
-Contribution to <<way>> : ("in",2), ("the",1), ("way",8)
+Example 4:  Patrick: "why are you getting <<in the {{way}}>>?" Later,
+Contribution to token {{way}} whose feature activation is 1.3819 : [("in",2), ("the",1), ("way",8)]
 """
 
 EXAMPLE_3_COT_ACTIVATION_RESPONSE = """
