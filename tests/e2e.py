@@ -15,9 +15,9 @@ async def test():
         dataset_split="train[:1%]",
         dataset_column="text",
         batch_size=8,
-        cache_ctx_len=32,
+        cache_ctx_len=256,
         n_splits=5,
-        n_tokens=1000000,
+        n_tokens=200000,
     )
     sampler_cfg = SamplerConfig(
         train_type="quantiles",
@@ -28,7 +28,7 @@ async def test():
     )
     constructor_cfg = ConstructorConfig(
         min_examples=90,
-        example_ctx_len=32,
+        example_ctx_len=256,
         n_non_activating=50,
         non_activating_source="random",
         faiss_embedding_cache_enabled=True,
@@ -42,16 +42,16 @@ async def test():
         hookpoints=["layers.14.mlp"],
         explainer_model="Qwen/Qwen2-1.5B-Instruct-AWQ",
         explainer_provider="offline",
-        explainer_model_max_len=12000,
+        explainer_model_max_len=16000,
         max_latents=100,
         seed=22,
-        num_gpus=4,
+        num_gpus=2,
         filter_bos=True,
         verbose=True,
         sampler_cfg=sampler_cfg,
         constructor_cfg=constructor_cfg,
         cache_cfg=cache_cfg,
-        apply_attnlrp=True
+        apply_attnlrp=False
     )
 
     start_time = time.time()

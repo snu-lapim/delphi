@@ -47,7 +47,7 @@ class Offline(Client):
         max_model_len: int = 4096,
         number_tokens_to_generate: int = 500,
         num_gpus: int = 2,
-        enforce_eager: bool = False,
+        enforce_eager: bool = True,
         statistics: bool = False,
     ):
         """Client for offline generation. Models not already present in the on-disk

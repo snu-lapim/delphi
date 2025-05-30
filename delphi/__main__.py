@@ -258,7 +258,6 @@ async def process_cache(
             cot=True,
             threshold=0.3,
             verbose=run_cfg.verbose,
-            cot=True,
             model=model,  # sangyu: 모델 전달
             hookpoint_to_sparse_encode=hookpoint_to_sparse_encode,  # sangyu: hookpoint_to_sparse_encode 전달
         )
@@ -266,11 +265,11 @@ async def process_cache(
         
         explainer = DefaultExplainer(
             client,
+            cot=True,
             threshold=0.3,
             verbose=run_cfg.verbose,
             model=model,
-            hookpoint_to_sparse_encode=hookpoint_to_sparse_encode,
-            apply_attnlrp=run_cfg.apply_attnlrp, # sangyu: attnlrp 적용 여부
+            hookpoint_to_sparse_encode=hookpoint_to_sparse_encode, # sangyu: attnlrp 적용 여부
         )
 
     explainer_pipe = Pipe(process_wrapper(explainer, postprocess=explainer_postprocess))
