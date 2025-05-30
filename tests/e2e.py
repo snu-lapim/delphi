@@ -40,18 +40,18 @@ async def test():
         model="meta-llama/Llama-3.2-1B",
         sparse_model="EleutherAI/sae-Llama-3.2-1B-131k",
         hookpoints=["layers.14.mlp"],
-        explainer_model="deepseek/deepseek-r1:free",
-        explainer_provider="openrouter",
-        explainer_model_max_len=4096,
+        explainer_model="o4-mini",
+        explainer_provider="chatgpt",
+        explainer_model_max_len=12000,
         max_latents=100,
         seed=22,
-        num_gpus=torch.cuda.device_count(),
+        num_gpus=1,
         filter_bos=True,
         verbose=True,
         sampler_cfg=sampler_cfg,
         constructor_cfg=constructor_cfg,
         cache_cfg=cache_cfg,
-        apply_attnlrp=True
+        apply_attnlrp=False
     )
 
     start_time = time.time()
@@ -59,7 +59,7 @@ async def test():
     end_time = time.time()
     print(f"Time taken: {end_time - start_time} seconds")
 
-    scores_path = Path.cwd() / "results" / run_cfg.name / "scores"
+    scores_path = Path.cwd() / "results_original" / run_cfg.name / "scores"
 
     latent_df, _ = load_data(scores_path, run_cfg.hookpoints)
     processed_df = get_metrics(latent_df)

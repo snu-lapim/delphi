@@ -15,7 +15,9 @@ from ..latents.latents import ActivatingExample, LatentRecord
 from ..logger import logger
 from typing import Callable, Optional
 from transformers import PreTrainedModel
-
+from huggingface_hub import login
+import random
+import numpy as np
 #for debug purpose
 from lxt.utils import pdf_heatmap, clean_tokens
 from transformers import AutoTokenizer
