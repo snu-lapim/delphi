@@ -30,6 +30,10 @@ Guidelines:
 - Be concise: one clear sentence, no lists of alternatives.
 - Ignore systematic biases such as high weights on sentence-initial or newline
   tokens unless they genuinely define the pattern.
+- In addition to the tokens themselves, consider the ordering of the examples:
+  they are sorted from the highest to the lowest activation float.
+  If the latent meaning seems to drift as the activation weakens, reflect that
+  gradient in your reasoning and summary.
 - Do not mention the marker symbols or quote the snippets.
 - Conclude with:
   [EXPLANATION]: your-single-sentence-explanation

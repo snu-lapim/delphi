@@ -263,7 +263,6 @@ async def process_cache(
             verbose=run_cfg.verbose,
             model=model,
             hookpoint_to_sparse_encode=hookpoint_to_sparse_encode,
-            apply_attnlrp=run_cfg.apply_attnlrp, # sangyu: attnlrp 적용 여부
         )
 
     explainer_pipe = Pipe(process_wrapper(explainer, postprocess=explainer_postprocess))
