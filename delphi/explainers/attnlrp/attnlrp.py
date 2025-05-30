@@ -83,6 +83,7 @@ class AttnLRPExplainer(Explainer):
             str_toks = example.str_tokens
             activations = example.activations.tolist()
             normalized_activations = example.normalized_activations.tolist()
+            highlighted_examples.append(f"Example {i+1}: ")
             highlighted_examples.append(self._highlight(str_toks, activations, normalized_activations))
 
             if self.activations:
