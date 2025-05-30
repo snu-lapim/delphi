@@ -2,7 +2,7 @@ import asyncio
 from dataclasses import dataclass
 from typing import NamedTuple, List
 
-from ..explainer import ActivatingExample, Explainer, ExplainerResult
+from ..explainer import ActivatingExample, Explainer, ExplainerResult, show_activation_for_debug
 from .prompt_builder import build_prompt
 from delphi.latents import ActivatingExample, LatentRecord
 import torch
@@ -26,9 +26,9 @@ tokenizer = AutoTokenizer.from_pretrained(path)
 def _to_heat(relevance: torch.Tensor, heat_method: str = 'sum', normalize_method: str = 'abs_max') -> torch.Tensor:
 
     if heat_method == 'sum':
-        relevance = relevance.float().sum(-1).detach().cpu().squeeze()
+        relevance = relevance.float().sum(-1).detach().cpu()
     elif heat_method == 'l2':
-        relevance = relevance.float().pow(2).sum(-1).sqrt().detach().cpu().squeeze()
+        relevance = relevance.float().pow(2).sum(-1).sqrt().detach().cpu()
     else:
         raise ValueError(f"Unknown heat method: {heat_method}")
     h = relevance
@@ -50,9 +50,9 @@ class AttnLRPExplainer(Explainer):
 
     async def __call__(self, record: LatentRecord) -> ExplainerResult:
         
-        
+        # show_activation_for_debug(record.train, record.latent.latent_index, postfix="org")
         self.update_examples_with_relevance(record)
-        
+        # show_activation_for_debug(record.train, record.latent.latent_index, postfix="attnlrp")
         
         messages = self._build_prompt(record.train)
 
@@ -83,6 +83,7 @@ class AttnLRPExplainer(Explainer):
             str_toks = example.str_tokens
             activations = example.activations.tolist()
             normalized_activations = example.normalized_activations.tolist()
+            highlighted_examples.append(f"Example {i+1}: ")
             highlighted_examples.append(self._highlight(str_toks, activations, normalized_activations))
 
             if self.activations:

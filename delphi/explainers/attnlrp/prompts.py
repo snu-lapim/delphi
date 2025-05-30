@@ -1,198 +1,96 @@
-#####################################################################
-# 1. 한 토큰 + 기여 토큰(contributions) 형식에 맞춘 새 프롬프트들
-#####################################################################
-
-SYSTEM_SINGLE_TOKEN = """Your input consists of short snippets that contain **exactly one focal token**
-enclosed in <<double angle brackets>>. On the next line you will see
-    Contribution to <<token>> : ("word₁",w₁), ("word₂",w₂), ...
-where each tuple lists a contributing token and its weight
-(higher = greater contribution to the feature’s activation on the focal token).
-
-Your task:
-• Infer the latent linguistic/semantic property that explains why this feature
-  activates on the focal token, given the set of contributing tokens.
-• Ignore known systematic biases (e.g. sentence-initial tokens, “\\n”) unless
-  they are clearly part of the genuine pattern.
-• Provide **one concise sentence** describing the pattern; do **not** offer
-  multiple guesses or mention the markers themselves.
-• End with exactly one line in the form
-  [EXPLANATION]: your-single-sentence-explanation
-{prompt}
-"""
-
-SYSTEM = """You are a meticulous AI researcher investigating language features.
-Each example contains **one** focal token marked with {{ }} and contributing tokens marked with << >>.:
-   Contribution to {{token}}, whose feature activation is *float* : [("word",weight), ... ]
-Summarize the common latent property causing activation on the focal token,
-taking the contributing tokens into account.
-
-Guidelines:
-- Be concise: one clear sentence, no lists of alternatives.
-- Ignore systematic biases such as high weights on sentence-initial or newline
-  tokens unless they genuinely define the pattern.
-- In addition to the tokens themselves, consider the ordering of the examples:
-  they are sorted from the highest to the lowest activation float.
-  If the latent meaning seems to drift as the activation weakens, reflect that
-  gradient in your reasoning and summary.
-- Do not mention the marker symbols or quote the snippets.
-- Conclude with:
-  [EXPLANATION]: your-single-sentence-explanation
+SYSTEM = """
+You are an expert linguistic detective.  
+Each input sentence contains exactly **one** target token wrapped in double braces `{{token}}`.  
+Every token that **contributes** to this target’s SAE-feature value appears somewhere **before** it in the sentence; those contributor tokens, even if non-contiguous, are grouped together with the target inside a single pair of angle brackets:  
+`<< … contributing-token-k … contributing-token-1 {{target}} >>`.  
+Your task is to state, in **one concise English sentence**, the semantic or syntactic phenomenon that this SAE feature captures.  
+Return **only** one line, formatted exactly as  
+[EXPLANATION]: your-single-sentence-explanation 
 
 {prompt}
 """
 
-SYSTEM_CONTRASTIVE = """You are a meticulous AI researcher investigating language features.
-Input contains positive examples (with <<token>> and contribution list) and
-optional counter-examples (no highlighted token).
+COT ="""
+Think step-by-step **silently** before answering: 
+1. For every example, note the target {{token}}, its activation score, and the listed contributor tokens (ignore any “\n” bias tokens).  
+2. Identify patterns shared by contributors and/or targets (word class, modality, discourse role, idiom, polarity, etc.).  
+3. Observe how the pattern shifts as activation declines to infer the feature’s core meaning and boundaries.  
+4. Draft a hypothesis of what the feature detects.  
+5. Compress that hypothesis into ONE well-formed English sentence.  
+6. Output **only** that sentence prefixed with “[EXPLANATION]: ”—nothing else."""
 
-Task & guidelines (same as above):
-• Use both positive and counter-examples to pinpoint the latent property.
-• Be concise; ignore known bias tokens.
-• End with:
-  [EXPLANATION]: your-single-sentence-explanation
-"""
+EXAMPLE_1 ="""
+He was <<over the {{moon}}>> when he got the job.  
+She felt <<on top of the {{world}}>> after the final.  
+Fans are <<through the {{roof}}>> with excitement today."""
 
+EXAMPLE_1_ACTIVATIONS ="""
+Example_1 : He was <<over the {{moon}}>> when he got the job.  
+Contribution to token {{moon}} whose feature activation is 2.112 : [("over",4), ("the",2), ("moon",9)]  
+Example_2 : She felt <<on top of the {{world}}>> after the final.  
+Contribution to token {{world}} whose feature activation is 1.937 : [("top",3), ("of",2), ("the",2), ("world",8)]  
+Example_3 : Fans are <<through the {{roof}}>> with excitement today.
+Contribution to token {{roof}} whose feature activation is 1.621 : [("through",4), ("the",2), ("roof",7)]"""
 
-COT = """
-To better find the explanation for the language patterns go through the following stages:
+EXAMPLE_1_COT_ACTIVATION_RESPONSE ="""
+• Highest activations sit on nouns anchoring exuberant idioms (“over the moon”, etc.).  
+• Contributors are the idiom’s function words.  
+• Activation fades on less-common idioms. → Feature fires on nouns in highly positive idioms."""
 
-1.Find the special words that are selected in the examples and list a couple of them. Search for patterns in these words, if there are any. Don't list more than 5 words.
+EXAMPLE_1_EXPLANATION ="""
+[EXPLANATION]: The noun at the heart of upbeat English idioms signalling extreme happiness or excitement."""
 
-2. Write down general shared latents of the text examples. This could be related to the full sentence or to the words surrounding the marked words.
-
-3. Formulate an hypothesis and write down the final explanation using [EXPLANATION]:.
-
-"""
-
-
-#####################################################################
-# 1. 새 Example 1
-#####################################################################
-EXAMPLE_1 = """
-Example 1:  and he was <<over the {{moon}}>> to find
-
-Example 2:  we’ll be laughing <<till>> the <<cows come {{home}}>>! Pro
-
-Example 3:  thought Scotland was boring, but really there’s more <<than meets the {{eye}}>>! I’d
-"""
-
-EXAMPLE_1_ACTIVATIONS = """
-Example 1:  and he was <<over the {{moon}}>> to find
-Contribution to token {{moon}} whose feature activation is 2.1123 : [("over",4), ("the",2), ("moon",9)]
-
-Example 2:  we’ll be laughing <<till>> the <<cows come {{home}}>>! Pro
-Contribution to token {{home}} whose feature activation is 1.5623 : [("till",4), ("cows",4), ("come",3), ("home",9)]
-
-Example 3:  thought Scotland was boring, but really there’s more <<than meets the {{eye}}>>! I’d
-Contribution to token {{eye}} whose feature activation is 2.23 : [("than",3), ("meets",5), ("the",2), ("eye",9)]
-"""
-
-EXAMPLE_1_COT_ACTIVATION_RESPONSE = """
-ACTIVATING TOKENS: "moon", "home", "eye".
-CONTRIBUTING TOKENS: ["over":4,"the":2,"moon":9], ["till":4,"cows":4, "come":3,"home":9], ["than":3,"meets":5,"the":2,"eye":9].
-
-Step 1. Each activating token is the key noun in a well-known idiom
-        (“over the moon”, “till the cows come home”, “than meets the eye”).
-        The contributing tokens are the other words that complete those idioms.
-
-Step 2. Across examples, the feature fires on positive English idioms whose
-        core noun carries the main semantic punch.
-
-Step 3. The highest weight is always on the core noun (“moon”, “home”, “eye”),
-        with idiom-specific modifiers receiving secondary weights.
-"""
-EXAMPLE_1_EXPLANATION = """
-[EXPLANATION]: The core noun inside upbeat English idioms conveying positive sentiment.
-"""
-
-#####################################################################
-# 2. 새 Example 2
-#####################################################################
 EXAMPLE_2 = """
-Example 1:  a river is wide but the ocean <<is wid{{er}}>>.
-
-Example 2:  every year you <<get tall{{er}}>>," she said
-
-Example 3:  the hole <<became small{{er}}>> than before
-
-Example 4:  this lake <<is deep{{er}}>> than the pond
+<<Experienced athletes {{can}}>> complete the course in under two hours.  
+<<Careful analysis {{may}}>> help resolve the issue.  
+<<With a little luck {{might}}>> we avoid delays.
 """
 
-EXAMPLE_2_ACTIVATIONS = """
-Example 1:  a river is wide but the ocean <<is wid{{er}}>>.
-Contribution to token {{er}} whose feature activation is 1.6144 : ("is",1), ("wid",4), ("er",9)
+EXAMPLE_2_ACTIVATIONS ="""
+Example_1 : <<Experienced athletes {{can}}>> complete the course in under two hours.  
+Contribution to token {{can}} whose feature activation is 2.145 : [("Experienced",3), ("athletes",2), ("can",9)]  
+Example_2 : <<Careful analysis {{may}}>> help resolve the issue.  
+Contribution to token {{may}} whose feature activation is 1.944 : [("Careful",2), ("analysis",2), ("may",9)]  
+Example_3 : <<With a little luck {{might}}>> we avoid delays.
+Contribution to token {{might}} whose feature activation is 1.512 : [("With",1), ("a",1), ("little",1), ("luck",2), ("might",8)]"""
 
-Example 2:  every year you <<get tall{{er}}>>," she said
-Contribution to token {{er}} whose feature activation is 2.1121 : ("get",1), ("tall",4), ("er",8)
+EXAMPLE_2_COT_ACTIVATION_RESPONSE ="""
+• Highest scores attach to modal auxiliaries “can / may / might”.  
+• All contributors precede the modal, even if separated.  
+• Strength drops from strong ability (“can”) to weak possibility (“might”).  
+→ Feature encodes graded modality."""
 
-Example 3:  the hole <<became small{{er}}>> than before
-Contribution to token {{er}} whose feature activation is 1.7899 : ("became",1), ("small",4), ("er",9)
+EXAMPLE_2_EXPLANATION ="""
+[EXPLANATION]: Core English modal auxiliaries expressing ability or decreasing degrees of possibility."""
 
-Example 4:  this lake <<is deep{{er}}>> than the pond
-Contribution to token {{er}} whose feature activation is 1.5627 : ("is",1), ("deep",4), ("er",9)
-"""
-
-
-EXAMPLE_2_COT_ACTIVATION_RESPONSE = """
-ACTIVATING TOKENS: "er", "er", "er", "er".
-CONTRIBUTING TOKENS: ["is":1,"wid":4,"er":9], ["get":1,"tall":4,"er":8], ["became":1,"small":4,"er":9], ["is":1,"deep":4,"er":9].
-
-Step 1. The activating token is always the suffix “er”, while the contributing
-        tokens are the adjective roots it attaches to.
-
-Step 2. The feature targets the comparative suffix “-er” when attached to
-        adjectives that express measurable magnitude.
-
-Step 3. The greatest weight goes to the suffix itself, followed by the adjective
-        stem that provides the comparison base.
-"""
-EXAMPLE_2_EXPLANATION = """
-[EXPLANATION]: Comparative “-er” suffix on adjectives of size or extent.
-"""
-
-#####################################################################
-# 3. 새 Example 3
-#####################################################################
-EXAMPLE_3 = """
-Example 1:  something happening <<inside my {{house}}>>, he whispered
-
-Example 2:  it was always contained <<in a {{box}}>>, according to experts
-
-Example 3:  people were coming <<into the smoking {{area}}>> reserved for staff
-
-Example 4:  Patrick: "why are you getting <<in the {{way}}>>?" Later,
-"""
+EXAMPLE_3 ="""
+The plan sounded great; <<{{however}}>> the budget was gone.  
+Sales rose in Q1, <<{{but}}>> Q2 was disappointing.  
+It’s a sturdy phone, <<although the weight {{although}}>> is a drawback."""
 
 EXAMPLE_3_ACTIVATIONS = """
-Example 1:  something happening <<inside my {{house}}>>, he whispered
-Contribution to token {{house}} whose feature activation is 2.1123 : [("inside",3), ("my",1), ("house",9)]
+Example_1 : The plan sounded great; <<{{however}}>> the budget was gone.  
+Contribution to token {{however}} whose feature activation is 2.031 : [("however",8), (";",2)]  
+Example_2 : Sales rose in Q1, <<{{but}}>> Q2 was disappointing.  
+Contribution to token {{but}} whose feature activation is 1.774 : [("but",8)]  
 
-Example 2:  it was always contained <<in a {{box}}>>, according to experts
-Contribution to token {{box}} whose feature activation is 2.5234 : [("in",2), ("a",1), ("box",9)]
+Example_3 : It’s a sturdy phone, <<although the weight {{although}}>> is a drawback.
+Contribution to token {{although}} whose feature activation is 1.423 : [("although",7), (",",2)]"""
 
-Example 3:  people were coming <<into the smoking {{area}}>> reserved for staff
-Contribution to token {{area}} whose feature activation is 2.1838 : [("into",2), ("smoking",3), ("area",8)]
 
-Example 4:  Patrick: "why are you getting <<in the {{way}}>>?" Later,
-Contribution to token {{way}} whose feature activation is 1.3819 : [("in",2), ("the",1), ("way",8)]
-"""
 
-EXAMPLE_3_COT_ACTIVATION_RESPONSE = """
-ACTIVATING TOKENS: "house", "box", "area", "way".
-CONTRIBUTING TOKENS: ["inside":3,"my":1,"house":9], ["in":2,"a":1,"box":9], ["into":2,"smoking":3,"area":8], ["in":2,"the":1,"way":8].
+EXAMPLE_3_COT_ACTIVATION_RESPONSE ="""
+• Tokens are adversative conjunctions.  
+• Activation strongest clause-initial (“however”), weaker when embedded (“although”).  
+→ Feature marks contrastive connectors."""
 
-Step 1. Each activating token is a noun naming a container or space where
-        something can be located.
-
-Step 2. Contributing tokens highlight spatial inclusion (“in/inside/into”),
-        signalling that the noun denotes a place or receptacle.
-
-Step 3. Highest weights belong to the noun itself, with moderate weights on the
-        surrounding prepositions that establish the containment relation.
-"""
 EXAMPLE_3_EXPLANATION = """
-[EXPLANATION]: Nouns that denote places or containers which can hold something inside.
-"""
+[EXPLANATION]: Adversative conjunctions and discourse markers that signal contrast or concession, strongest when clause-initial."""
+
+# ---------------------------------------------------------------
+# Put your 40 real examples below, in the same format:
+# ★★PLACE_40_EXAMPLES_HERE★★
+# ---------------------------------------------------------------
 
 
 def get(item):
@@ -240,9 +138,9 @@ def system(cot=False):
     ]
 
 
-def system_single_token():
-    return [{"role": "system", "content": SYSTEM_SINGLE_TOKEN}]
+# def system_single_token():
+#     return [{"role": "system", "content": SYSTEM_SINGLE_TOKEN}]
 
 
-def system_contrastive():
-    return [{"role": "system", "content": SYSTEM_CONTRASTIVE}]
+# def system_contrastive():
+#     return [{"role": "system", "content": SYSTEM_CONTRASTIVE}]

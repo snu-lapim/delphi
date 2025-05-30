@@ -34,12 +34,15 @@ class ExplainerResult(NamedTuple):
     """Generated explanation for latent."""
 
 def show_activation_for_debug(
-    act_examples: List[ActivatingExample],latentnumber: int):
+    act_examples: List[ActivatingExample],latentnumber: int, postfix: str = "org"):
+    if os.path.exists(f"heatmap/feature_{latentnumber}_{postfix}"):
+        print(f"Heatmap for feature {latentnumber} already exists. Skipping generation.")
+        return
     for ex in act_examples:
         max_act = ex.activations.max()
-        os.makedirs(f"heatmap/feature_{latentnumber}", exist_ok=True)
+        os.makedirs(f"heatmap/feature_{latentnumber}_{postfix}", exist_ok=True)
         tokens = clean_tokens(tokenizer.convert_ids_to_tokens(ex.tokens))
-        pdf_heatmap(tokens, ex.normalized_activations/10, path=f"heatmap/feature_{latentnumber}/feature_{latentnumber}_contribution_{max_act}.pdf")
+        pdf_heatmap(tokens, ex.normalized_activations/10, path=f"heatmap/feature_{latentnumber}_{postfix}/feature_{latentnumber}_contribution_{max_act}.pdf")
         print(f"Feature {latentnumber} - Max Activation: {max_act}")
     
 

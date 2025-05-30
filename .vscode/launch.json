@@ -12,7 +12,7 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "env": {
-                "OPENROUTER_API_KEY": "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"
+                "OPENROUTER_API_KEY": "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"
             },            
         }
     ]
