@@ -213,8 +213,10 @@ async def process_cache(
             # Explainer models context length - must be able to accommodate the longest
             # set of examples
             max_model_len=run_cfg.explainer_model_max_len,
+            number_tokens_to_generate=run_cfg.number_tokens_to_generate,
             num_gpus=run_cfg.num_gpus,
             statistics=run_cfg.verbose,
+            enable_thinking=run_cfg.enable_thinking,
         )
     elif run_cfg.explainer_provider == "openrouter":
         if (

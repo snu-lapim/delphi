@@ -50,9 +50,9 @@ class AttnLRPExplainer(Explainer):
 
     async def __call__(self, record: LatentRecord) -> ExplainerResult:
         
-        # show_activation_for_debug(record.train, record.latent.latent_index, postfix="org")
+        show_activation_for_debug(record.train, record.latent.latent_index, postfix="org")
         self.update_examples_with_relevance(record)
-        # show_activation_for_debug(record.train, record.latent.latent_index, postfix="attnlrp")
+        show_activation_for_debug(record.train, record.latent.latent_index, postfix="attnlrp")
         
         messages = self._build_prompt(record.train)
 

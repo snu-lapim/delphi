@@ -48,6 +48,7 @@ class Offline(Client):
         number_tokens_to_generate: int = 500,
         num_gpus: int = 2,
         enforce_eager: bool = True,
+        enable_thinking: bool = False,
         statistics: bool = False,
     ):
         """Client for offline generation. Models not already present in the on-disk
@@ -70,6 +71,7 @@ class Offline(Client):
         self.tokenizer = AutoTokenizer.from_pretrained(model)
         self.batch_size = batch_size
         self.statistics = statistics
+        self.enable_thinking = enable_thinking
 
         if self.statistics:
             self.statistics_path = Path("statistics")
@@ -100,13 +102,13 @@ class Offline(Client):
 
         for batch in batches:
             prompt = self.tokenizer.apply_chat_template(
-                batch, add_generation_prompt=True, tokenize=True
+                batch, add_generation_prompt=True, tokenize=True, enable_thinking=self.enable_thinking  
             )
             prompts.append(prompt)
             if self.statistics:
                 non_cached_tokens = len(
                     self.tokenizer.apply_chat_template(
-                        batch[-1:], add_generation_prompt=True, tokenize=True  # type: ignore
+                        batch[-1:], add_generation_prompt=True, tokenize=True, enable_thinking=self.enable_thinking  # type: ignore
                     )
                 )
                 statistics.append(
