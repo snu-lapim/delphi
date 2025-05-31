@@ -17,7 +17,7 @@ from transformers import (
     PreTrainedTokenizerFast,
 )
 
-from delphi.clients import Offline, OpenRouter
+from delphi.clients import Offline, OpenRouter, ChatGPT
 from delphi.config import RunConfig
 from delphi.explainers import ContrastiveExplainer, DefaultExplainer, AttnLRPExplainer
 from delphi.latents import LatentCache, LatentDataset
@@ -213,8 +213,10 @@ async def process_cache(
             # Explainer models context length - must be able to accommodate the longest
             # set of examples
             max_model_len=run_cfg.explainer_model_max_len,
+            number_tokens_to_generate=run_cfg.number_tokens_to_generate,
             num_gpus=run_cfg.num_gpus,
             statistics=run_cfg.verbose,
+            enable_thinking=run_cfg.enable_thinking,
         )
     elif run_cfg.explainer_provider == "openrouter":
         if (
@@ -230,6 +232,11 @@ async def process_cache(
             run_cfg.explainer_model,
             api_key=os.environ["OPENROUTER_API_KEY"],
         )
+    elif run_cfg.explainer_provider == "chatgpt":
+        client = ChatGPT(
+            run_cfg.explainer_model
+        )
+
     else:
         raise ValueError(
             f"Explainer provider {run_cfg.explainer_provider} not supported"
@@ -260,10 +267,11 @@ async def process_cache(
         
         explainer = DefaultExplainer(
             client,
+            cot=True,
             threshold=0.3,
             verbose=run_cfg.verbose,
             model=model,
-            hookpoint_to_sparse_encode=hookpoint_to_sparse_encode,
+            hookpoint_to_sparse_encode=hookpoint_to_sparse_encode, # sangyu: attnlrp 적용 여부
         )
 
     explainer_pipe = Pipe(process_wrapper(explainer, postprocess=explainer_postprocess))
