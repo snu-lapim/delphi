@@ -55,7 +55,7 @@ class Explainer(ABC):
     """Whether to print verbose output."""
     threshold: float = 0.3
     """The activation threshold to select tokens to highlight."""
-    temperature: float = 0.0
+    temperature: float = 1.0
     """The temperature for explanation generation."""
     generation_kwargs: dict = field(default_factory=dict)
     """Additional keyword arguments for the generation client."""
