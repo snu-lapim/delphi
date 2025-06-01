@@ -7,10 +7,10 @@ name = "eai-delphi"
 version = "0.0.1"
 description = "Automated Interpretability"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 keywords = ["interpretability", "explainable-ai"]
 dependencies = [
-    "torch",
+    "torch<=2.7.0",
     "datasets",
     "transformers",
     "orjson",
@@ -22,7 +22,7 @@ dependencies = [
     "blobfile",
     "bitsandbytes",
     "flask",
-    "vllm<0.8.0",
+    "vllm<=0.9.0",
     "aiofiles",
     "sentence_transformers",
     "anyio>=4.8.0",

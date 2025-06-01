@@ -119,7 +119,14 @@ class RunConfig(Serializable):
     """Name of sparse models associated with the model to explain, or path to
     directory containing their weights. Models must be loadable with sparsify
     or gemmascope."""
-
+    number_tokens_to_generate: int = field(
+        default=500,
+        alias="number_tokens",
+    )
+    enable_thinking: bool = field(
+        default=False,
+    )
+    """Whether to enable thinking mode for the model. This is only for the supported models such as QWEN"""
     hookpoints: list[str] = list_field()
     """list of model hookpoints to attach sparse models to."""
 

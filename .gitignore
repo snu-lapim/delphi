@@ -10,7 +10,7 @@ extras/*
 temp/*
 saved*
 .nfs*
-
+heatmap/*
 
 
 # Byte-compiled / optimized / DLL files

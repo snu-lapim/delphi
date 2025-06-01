@@ -14,10 +14,10 @@ async def test():
         dataset_repo="EleutherAI/fineweb-edu-dedup-10b",
         dataset_split="train[:1%]",
         dataset_column="text",
-        batch_size=16,
+        batch_size=8,
         cache_ctx_len=32,
         n_splits=5,
-        n_tokens=200_000,
+        n_tokens=1000000,
     )
     sampler_cfg = SamplerConfig(
         train_type="quantiles",
@@ -27,7 +27,7 @@ async def test():
         n_quantiles=10,
     )
     constructor_cfg = ConstructorConfig(
-        min_examples=30,
+        min_examples=90,
         example_ctx_len=32,
         n_non_activating=50,
         non_activating_source="random",
@@ -40,26 +40,28 @@ async def test():
         model="meta-llama/Llama-3.2-1B",
         sparse_model="EleutherAI/sae-Llama-3.2-1B-131k",
         hookpoints=["layers.14.mlp"],
-        explainer_model="deepseek/deepseek-r1:free",
-        explainer_provider="openrouter",
-        explainer_model_max_len=4096,
+        explainer_model="Qwen/Qwen3-30B-A3B-GPTQ-Int4",
+        explainer_provider="offline",
+        explainer_model_max_len=30000,
+        number_tokens_to_generate=2000,
+        enable_thinking=False,
         max_latents=100,
         seed=22,
-        num_gpus=torch.cuda.device_count(),
+        num_gpus=2,
         filter_bos=True,
         verbose=True,
         sampler_cfg=sampler_cfg,
         constructor_cfg=constructor_cfg,
         cache_cfg=cache_cfg,
-        apply_attnlrp=True
+        apply_attnlrp=False
     )
 
     start_time = time.time()
     await run(run_cfg)
     end_time = time.time()
     print(f"Time taken: {end_time - start_time} seconds")
-
-    scores_path = Path.cwd() / "results" / run_cfg.name / "scores"
+    
+    scores_path = Path.cwd() / "results_original" / run_cfg.name / "scores"
 
     latent_df, _ = load_data(scores_path, run_cfg.hookpoints)
     processed_df = get_metrics(latent_df)
