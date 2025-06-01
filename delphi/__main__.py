@@ -257,14 +257,13 @@ async def process_cache(
     elif run_cfg.apply_attnlrp:
         explainer = AttnLRPExplainer(
             client,
-            cot=True,
+            cot=run_cfg.explainer_cot,
             threshold=0.3,
             verbose=run_cfg.verbose,
             model=model,  # sangyu: 모델 전달
             hookpoint_to_sparse_encode=hookpoint_to_sparse_encode,  # sangyu: hookpoint_to_sparse_encode 전달
         )
     else:
-        
         explainer = DefaultExplainer(
             client,
             cot=True,

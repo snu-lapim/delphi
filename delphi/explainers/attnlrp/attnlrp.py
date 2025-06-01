@@ -179,7 +179,7 @@ class AttnLRPExplainer(Explainer):
         
         record.train      = self._apply_relevance(record.train,      hp, idx)
         # if self.verbose:
-        #     show_activation_for_debug(record.train, idx) # 이 코드 사용하면 heatmap/ 폴더에 activation pdf 저장됨
+            # show_activation_for_debug(record.train, idx) # 이 코드 사용하면 heatmap/ 폴더에 activation pdf 저장됨
         record.examples   = self._apply_relevance(record.examples,   hp, idx)
         record.test       = self._apply_relevance(record.test,       hp, idx)
         record.neighbours = self._apply_relevance(record.neighbours, hp, idx)
