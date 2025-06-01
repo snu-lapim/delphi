@@ -14,8 +14,8 @@ async def test():
         dataset_repo="EleutherAI/fineweb-edu-dedup-10b",
         dataset_split="train[:1%]",
         dataset_column="text",
-        batch_size=8,
-        cache_ctx_len=256,
+        batch_size=16,
+        cache_ctx_len=32,
         n_splits=5,
         n_tokens=200_000,
     )
@@ -27,8 +27,8 @@ async def test():
         n_quantiles=10,
     )
     constructor_cfg = ConstructorConfig(
-        min_examples=90,
-        example_ctx_len=256,
+        min_examples=30,
+        example_ctx_len=32,
         n_non_activating=50,
         non_activating_source="random",
         faiss_embedding_cache_enabled=True,
