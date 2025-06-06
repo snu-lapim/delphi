@@ -1,3 +1,0 @@
-export OPENAI_API_KEY="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"
-
-python3 -m tests.e2e
