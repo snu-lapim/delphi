@@ -7,11 +7,12 @@
 latents/*
 results/*
 extras/*
+heatmap/*
 temp/*
 saved*
 .nfs*
-heatmap/*
-
+results*/
+statistics*/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

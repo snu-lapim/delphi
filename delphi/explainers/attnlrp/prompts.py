@@ -10,7 +10,9 @@ Your task is to state, in **one concise English sentence**, the semantic or synt
 
 COT ="""
 To better find the explanation for the language patterns go through the following stages:
-1. For every example, **YOU MUST WRITE DOWN FIRST** list of the target {{token}}, its activation score, and the listed contributor tokens and its contribution scores. (ignore any “\n” bias tokens).  
+1. For every example, **YOU MUST WRITE DOWN FIRST** list *no more than ten* activation rows that best illustrate the pattern shift (include some high, mid-range, and low activations).  
+   For each chosen row write the target {{token}}, its activation score, and the contributor tokens with their contribution scores (ignore any “\\n” bias tokens). 
+   **Make sure there are no more than ten rows in total**, and that they are ordered by activation score from highest to lowest.
 2. Identify patterns shared by contributors and/or targets (word class, modality, discourse role, idiom, polarity, etc.).  
 3. Observe how the pattern shifts as activation declines to infer the feature’s core meaning and boundaries.  
 4. Draft a hypothesis of what the feature detects.  
@@ -32,14 +34,13 @@ Contribution to token {{roof}} whose feature activation is 1.621 : [("through" :
 
 EXAMPLE_1_COT_ACTIVATION_RESPONSE = """
 1. Targets & contributors:
-   • {{moon}} (2.112) ← "over" : 4, "the" : 2, "moon" : 9
-   • {{world}} (1.937) ← "top" : 3, "of" : 2, "the" : 2, "world" : 8
-   • {{roof}} (1.621) ← "through" : 4, "the" : 2, "roof" : 7
+   •[1] {{moon}} (2.112) ← "over" : 4, "the" : 2, "moon" : 9
+   •[2] {{world}} (1.937) ← "top" : 3, "of" : 2, "the" : 2, "world" : 8
+   •[3] {{roof}} (1.621) ← "through" : 4, "the" : 2, "roof" : 7
 2. Every target is a noun inside an exuberant fixed idiom (‘over the moon’, ‘on top of the world’, ‘through the roof’).  
 3. Activation drops as the idiom becomes less frequent or vivid (moon > world > roof).  
 4. Hypothesis: the feature fires on the core noun of highly positive idioms denoting extreme happiness or excitement.  
-5. Compress →  
-6. [EXPLANATION]: The noun at the heart of upbeat English idioms signalling extreme happiness or excitement.
+5. Compress → 
 """
 
 EXAMPLE_1_EXPLANATION ="""
@@ -61,14 +62,13 @@ Contribution to token {{might}} whose feature activation is 1.512 : [("With" : 1
 
 EXAMPLE_2_COT_ACTIVATION_RESPONSE = """
 1. Targets & contributors:
-   • {{can}} (2.145) ← "Experienced" : 3, "athletes" : 2, "can" : 9
-   • {{may}} (1.944) ← "Careful" : 2, "analysis" : 2, "may" : 9
-   • {{might}} (1.512) ← "With" : 1, "a" : 1, "little" : 1, "luck" : 2, "might" : 8
+   •[1] {{can}} (2.145) ← "Experienced" : 3, "athletes" : 2, "can" : 9
+   •[2] {{may}} (1.944) ← "Careful" : 2, "analysis" : 2, "may" : 9
+   •[3] {{might}} (1.512) ← "With" : 1, "a" : 1, "little" : 1, "luck" : 2, "might" : 8
 2. All targets are core modal auxiliaries; contributors are the preceding noun or prepositional phrases plus the modal itself.  
 3. As modality weakens from strong ability (‘can’) to tentative possibility (‘might’), activation steadily falls (can > may > might).  
 4. Hypothesis: the feature detects English modals and grades them by perceived modal strength.  
 5. Compress →  
-6. [EXPLANATION]: Core English modal auxiliaries expressing ability or decreasing degrees of possibility.
 """
 EXAMPLE_2_EXPLANATION ="""
 [EXPLANATION]: Core English modal auxiliaries expressing ability or decreasing degrees of possibility."""
@@ -91,18 +91,19 @@ Contribution to token {{although}} whose feature activation is 1.423 : [("," : 2
 
 EXAMPLE_3_COT_ACTIVATION_RESPONSE = """
 1. Targets & contributors:
-   • {{however}} (2.031) ← “;” : 2, "however" : 8
-   • {{but}} (1.774) ← "but" : 8
-   • {{although}} (1.423) ← “,” : 2, "although" : 7
+   •[1] {{however}} (2.031) ← “;” : 2, "however" : 8
+   •[2] {{but}} (1.774) ← "but" : 8
+   •[3] {{although}} (1.423) ← “,” : 2, "although" : 7
 2. The targets are adversative conjunctions or discourse markers; contributors are nearby punctuation and the token itself.
 3. Clause-initial markers (‘however’) show the highest activation, while embedded concessives (‘although’) show the lowest (however > but > although).
 4. Hypothesis: the feature highlights connectors that introduce contrast, with extra weight when they open a new clause.
 5. Compress →
-6. [EXPLANATION]: Adversative conjunctions and discourse markers that signal contrast or concession, strongest when clause-initial.
 """
 
 EXAMPLE_3_EXPLANATION = """
 [EXPLANATION]: Adversative conjunctions and discourse markers that signal contrast or concession, strongest when clause-initial."""
+
+
 
 # ---------------------------------------------------------------
 # Put your 40 real examples below, in the same format:

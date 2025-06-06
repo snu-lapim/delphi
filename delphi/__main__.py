@@ -209,7 +209,7 @@ async def process_cache(
     if run_cfg.explainer_provider == "offline":
         client = Offline(
             run_cfg.explainer_model,
-            max_memory=0.9,
+            max_memory=0.8,
             # Explainer models context length - must be able to accommodate the longest
             # set of examples
             max_model_len=run_cfg.explainer_model_max_len,

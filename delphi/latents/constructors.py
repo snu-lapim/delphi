@@ -289,6 +289,8 @@ def constructor(
         print(f"Not enough examples to explain the latent: {len(record.examples)}")
         # Not enough examples to explain the latent
         return None
+    else:
+        print(f"Number of examples to explain the latent: {len(record.examples)}")
 
     if source_non_activating == "random":
         # Add random non-activating examples to the record in place
